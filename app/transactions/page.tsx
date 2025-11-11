@@ -21,15 +21,20 @@ export default function TransactionsPage() {
     if (params.get("action") === "add-income") return "income"
     return "expense"
   }, [paramsString])
+  const wantsRecurring = useMemo(() => {
+    const params = new URLSearchParams(paramsString)
+    return params.get("recurring") === "true"
+  }, [paramsString])
   const shouldOpenForm = useMemo(() => {
     const params = new URLSearchParams(paramsString)
     const action = params.get("action")
-    return action === "add-expense" || action === "add-income" || params.has("type")
+    return action === "add-expense" || action === "add-income" || params.has("type") || params.get("recurring") === "true"
   }, [paramsString])
   const [data, setData] = useState<FinanceData | null>(null)
   const [showForm, setShowForm] = useState(shouldOpenForm)
   const [filterType, setFilterType] = useState<"all" | "expense" | "income">("all")
   const [formType, setFormType] = useState<"expense" | "income">(initialTypeParam)
+  const [formRecurring, setFormRecurring] = useState<boolean>(wantsRecurring)
 
   useEffect(() => {
     const financeData = StorageManager.getData()
@@ -42,10 +47,11 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     setFormType(initialTypeParam)
+    setFormRecurring(wantsRecurring)
     if (shouldOpenForm && (initialTypeParam === "expense" || initialTypeParam === "income")) {
       setFilterType("all")
     }
-  }, [initialTypeParam, shouldOpenForm])
+  }, [initialTypeParam, shouldOpenForm, wantsRecurring])
 
   const resetQueryParams = () => {
     router.replace("/transactions", { scroll: false })
@@ -64,8 +70,9 @@ export default function TransactionsPage() {
     setData(financeData)
   }
 
-  const handleOpenForm = (type: "expense" | "income") => {
+  const handleOpenForm = (type: "expense" | "income", recurring = false) => {
     setFormType(type)
+    setFormRecurring(recurring)
     setShowForm(true)
   }
 
@@ -103,6 +110,7 @@ export default function TransactionsPage() {
                 <TransactionForm
                   categories={data.categories}
                   initialType={formType}
+                  initialRecurring={formRecurring}
                   onSuccess={handleTransactionAdded}
                   onCancel={() => {
                     setShowForm(false)

@@ -57,9 +57,10 @@ export default function AnalyticsPage() {
     : "—"
 
   const loanMetrics = useMemo(() => {
-    const activeLoans = data.loans.filter((loan) => loan.status === "active")
+    const loans = data.loans ?? []
+    const activeLoans = loans.filter((loan) => loan.status === "active")
     const outstandingBalance = activeLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
-    const totalBorrowed = data.loans.reduce((sum, loan) => sum + loan.principal, 0)
+    const totalBorrowed = loans.reduce((sum, loan) => sum + loan.principal, 0)
     const upcomingDates = activeLoans
       .filter((loan) => loan.nextPaymentDate)
       .map((loan) => new Date(loan.nextPaymentDate as string).getTime())

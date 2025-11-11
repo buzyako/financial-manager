@@ -12,22 +12,41 @@ interface TransactionFormProps {
   onSuccess: () => void
   onCancel: () => void
   initialType?: "expense" | "income"
+  initialRecurring?: boolean
+  initialRecurringPattern?: "daily" | "weekly" | "monthly" | "yearly"
 }
 
-export default function TransactionForm({ categories, onSuccess, onCancel, initialType = "expense" }: TransactionFormProps) {
+export default function TransactionForm({
+  categories,
+  onSuccess,
+  onCancel,
+  initialType = "expense",
+  initialRecurring = false,
+  initialRecurringPattern = "monthly",
+}: TransactionFormProps) {
   const [type, setType] = useState<"expense" | "income">(initialType)
   const [categoryId, setCategoryId] = useState<string>("")
   const [amount, setAmount] = useState<string>("")
   const [description, setDescription] = useState<string>("")
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0])
-  const [isRecurring, setIsRecurring] = useState(false)
-  const [recurringPattern, setRecurringPattern] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly")
+  const [isRecurring, setIsRecurring] = useState<boolean>(initialRecurring)
+  const [recurringPattern, setRecurringPattern] = useState<"daily" | "weekly" | "monthly" | "yearly">(
+    initialRecurringPattern,
+  )
   const [error, setError] = useState<string>("")
 
   useEffect(() => {
     setType(initialType)
     setCategoryId("")
   }, [initialType])
+
+  useEffect(() => {
+    setIsRecurring(initialRecurring)
+  }, [initialRecurring])
+
+  useEffect(() => {
+    setRecurringPattern(initialRecurringPattern)
+  }, [initialRecurringPattern])
 
   const filteredCategories = categories.filter((c) => c.type === type)
 
@@ -218,3 +237,5 @@ export default function TransactionForm({ categories, onSuccess, onCancel, initi
     </form>
   )
 }
+"use client"
+

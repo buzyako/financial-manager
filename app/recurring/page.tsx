@@ -10,6 +10,9 @@ import { getRecurringTransactionStats, generateRecurringTransactions } from "@/l
 import { formatCurrency } from "@/lib/utils-finance"
 import { generateId } from "@/lib/utils"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 
 export default function RecurringPage() {
   const [data, setData] = useState<FinanceData | null>(null)
@@ -52,9 +55,17 @@ export default function RecurringPage() {
 
         <main className="flex-1 overflow-auto w-full">
           <div className="p-4 md:p-8 max-w-6xl mx-auto">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Recurring Transactions</h1>
-              <p className="text-muted-foreground">Manage your automatic and recurring payments</p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Recurring Transactions</h1>
+                <p className="text-muted-foreground">Manage your automatic and recurring payments</p>
+              </div>
+              <Button asChild>
+                <Link href="/transactions?action=add-expense&recurring=true">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add recurring transaction
+                </Link>
+              </Button>
             </div>
 
             {/* Stats */}
@@ -109,6 +120,14 @@ export default function RecurringPage() {
                 </div>
               </Card>
             )}
+
+            <Card className="mb-8 border border-dashed border-border bg-muted/40 p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-2">How recurring transactions work</h2>
+              <p className="text-sm text-muted-foreground">
+                Create a transaction from the Transactions page and mark it as recurring. It will automatically appear
+                here so you can confirm upcoming payments and keep track of monthly totals.
+              </p>
+            </Card>
 
             {/* Active Recurring Transactions */}
             <Card className="p-6">
