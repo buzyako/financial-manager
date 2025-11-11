@@ -24,21 +24,6 @@ export default function AnalyticsPage() {
     setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`)
   }, [])
 
-  if (!data || !selectedMonth) {
-    return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen flex-col md:flex-row bg-background">
-          <Navigation />
-          <main className="flex-1 overflow-auto w-full">
-            <div className="p-4 md:p-8 max-w-7xl mx-auto">
-              <p className="text-muted-foreground text-sm">Loading analytics…</p>
-            </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    )
-  }
-
   const safeCategories = useMemo(
     () => (Array.isArray(data?.categories) ? data.categories!.filter(Boolean) : []),
     [data?.categories],
@@ -171,6 +156,8 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const ready = Boolean(data) && Boolean(selectedMonth)
+
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col md:flex-row bg-background">
@@ -183,139 +170,147 @@ export default function AnalyticsPage() {
               <p className="text-muted-foreground">Visualize your spending trends and financial patterns</p>
             </div>
 
-            {/* Stats Overview */}
-            <div className="my-8">
-              <AnalyticsStats
-                transactions={safeTransactions}
-                categories={safeCategories}
-                selectedMonth={selectedMonth}
-              />
-            </div>
-
-            {/* Month Selector */}
-            <Card className="p-4 mb-8">
-              <label htmlFor="month" className="block text-sm font-medium text-foreground mb-2">
-                Select Month
-              </label>
-              <input
-                id="month"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </Card>
-
-            <Card className="p-6 mb-8">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Monthly Summary</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Key performance indicators for {selectedMonth || "this month"}.
-                  </p>
+            {!ready ? (
+              <Card className="p-6">
+                <p className="text-sm text-muted-foreground">Loading analytics…</p>
+              </Card>
+            ) : (
+              <>
+                {/* Stats Overview */}
+                <div className="my-8">
+                  <AnalyticsStats
+                    transactions={safeTransactions}
+                    categories={safeCategories}
+                    selectedMonth={selectedMonth}
+                  />
                 </div>
-                <Button variant="outline" onClick={handleExport} disabled={monthTransactions.length === 0}>
-                  Export CSV
-                </Button>
-              </div>
 
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <tbody className="divide-y divide-border">
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Transactions recorded</td>
-                      <td className="py-2 font-medium text-foreground">{transactionCount}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Total income</td>
-                      <td className="py-2 font-medium text-accent">{formatCurrency(totalIncome)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Total expenses</td>
-                      <td className="py-2 font-medium text-destructive">{formatCurrency(totalExpenses)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Net position</td>
-                      <td
-                        className={`py-2 font-medium ${
-                          netBalance >= 0 ? "text-accent" : "text-destructive"
-                        }`}
-                      >
-                        {formatCurrency(netBalance)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Average income per entry</td>
-                      <td className="py-2 font-medium text-foreground">{formatCurrency(averageIncome)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Average expense per entry</td>
-                      <td className="py-2 font-medium text-foreground">{formatCurrency(averageExpense)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Top spending category</td>
-                      <td className="py-2 font-medium text-foreground">{topCategoryLabel}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Active loans</td>
-                      <td className="py-2 font-medium text-foreground">{loanMetrics.active}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Outstanding loan balance</td>
-                      <td className="py-2 font-medium text-foreground">
-                        {formatCurrency(loanMetrics.outstandingBalance)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Total borrowed</td>
-                      <td className="py-2 font-medium text-foreground">{formatCurrency(loanMetrics.totalBorrowed)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4 text-muted-foreground">Next loan payment</td>
-                      <td className="py-2 font-medium text-foreground">{loanMetrics.nextPayment}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                {/* Month Selector */}
+                <Card className="p-4 mb-8">
+                  <label htmlFor="month" className="block text-sm font-medium text-foreground mb-2">
+                    Select Month
+                  </label>
+                  <input
+                    id="month"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </Card>
 
-              {monthTransactions.length === 0 && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Add income and expenses for {selectedMonth} to unlock detailed reporting.
-                </p>
-              )}
-            </Card>
+                <Card className="p-6 mb-8">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-foreground">Monthly Summary</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Key performance indicators for {selectedMonth || "this month"}.
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={handleExport} disabled={monthTransactions.length === 0}>
+                      Export CSV
+                    </Button>
+                  </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Spending Trend (Last 12 Months)</h2>
-                <SpendingTrendChart transactions={safeTransactions} />
-              </Card>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <tbody className="divide-y divide-border">
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Transactions recorded</td>
+                          <td className="py-2 font-medium text-foreground">{transactionCount}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Total income</td>
+                          <td className="py-2 font-medium text-accent">{formatCurrency(totalIncome)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Total expenses</td>
+                          <td className="py-2 font-medium text-destructive">{formatCurrency(totalExpenses)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Net position</td>
+                          <td
+                            className={`py-2 font-medium ${
+                              netBalance >= 0 ? "text-accent" : "text-destructive"
+                            }`}
+                          >
+                            {formatCurrency(netBalance)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Average income per entry</td>
+                          <td className="py-2 font-medium text-foreground">{formatCurrency(averageIncome)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Average expense per entry</td>
+                          <td className="py-2 font-medium text-foreground">{formatCurrency(averageExpense)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Top spending category</td>
+                          <td className="py-2 font-medium text-foreground">{topCategoryLabel}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Active loans</td>
+                          <td className="py-2 font-medium text-foreground">{loanMetrics.active}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Outstanding loan balance</td>
+                          <td className="py-2 font-medium text-foreground">
+                            {formatCurrency(loanMetrics.outstandingBalance)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Total borrowed</td>
+                          <td className="py-2 font-medium text-foreground">{formatCurrency(loanMetrics.totalBorrowed)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 pr-4 text-muted-foreground">Next loan payment</td>
+                          <td className="py-2 font-medium text-foreground">{loanMetrics.nextPayment}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
 
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Monthly Comparison</h2>
-                <MonthlyComparisonChart transactions={safeTransactions} />
-              </Card>
-            </div>
+                  {monthTransactions.length === 0 && (
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Add income and expenses for {selectedMonth} to unlock detailed reporting.
+                    </p>
+                  )}
+                </Card>
 
-            <Card className="p-6 mb-8">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Category Breakdown - {selectedMonth}</h2>
-              <CategoryBreakdownChart
-                transactions={safeTransactions}
-                categories={safeCategories}
-                selectedMonth={selectedMonth}
-              />
-            </Card>
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  <Card className="p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Spending Trend (Last 12 Months)</h2>
+                    <SpendingTrendChart transactions={safeTransactions} />
+                  </Card>
 
-            {/* Top Spending Categories */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Top Spending Categories</h2>
-              <TopSpendingCategories
-                transactions={safeTransactions}
-                categories={safeCategories}
-                selectedMonth={selectedMonth}
-              />
-            </Card>
+                  <Card className="p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Monthly Comparison</h2>
+                    <MonthlyComparisonChart transactions={safeTransactions} />
+                  </Card>
+                </div>
+
+                <Card className="p-6 mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Category Breakdown - {selectedMonth}</h2>
+                  <CategoryBreakdownChart
+                    transactions={safeTransactions}
+                    categories={safeCategories}
+                    selectedMonth={selectedMonth}
+                  />
+                </Card>
+
+                {/* Top Spending Categories */}
+                <Card className="p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Top Spending Categories</h2>
+                  <TopSpendingCategories
+                    transactions={safeTransactions}
+                    categories={safeCategories}
+                    selectedMonth={selectedMonth}
+                  />
+                </Card>
+              </>
+            )}
           </div>
         </main>
       </div>
