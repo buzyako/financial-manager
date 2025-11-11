@@ -39,29 +39,48 @@ export default function AnalyticsPage() {
     )
   }
 
-  const safeCategories = useMemo(() => data.categories ?? [], [data.categories])
+  const safeCategories = useMemo(
+    () => (Array.isArray(data.categories) ? data.categories.filter(Boolean) : []),
+    [data.categories],
+  )
 
   const safeTransactions = useMemo(
     () =>
-      (data.transactions ?? []).filter(
-        (transaction): transaction is Transaction =>
-          Boolean(transaction) &&
-          typeof transaction.categoryId === "string" &&
-          typeof transaction.date === "string" &&
-          !Number.isNaN(Number(transaction.amount)),
-      ),
+      (Array.isArray(data.transactions) ? data.transactions : [])
+        .map((transaction) => {
+          if (!transaction) return null
+          const amount = typeof transaction.amount === "number" ? transaction.amount : Number(transaction.amount)
+          const date = typeof transaction.date === "string" ? transaction.date : ""
+          if (!Number.isFinite(amount) || !date) return null
+          return {
+            ...transaction,
+            amount,
+            date,
+          } as Transaction
+        })
+        .filter((transaction): transaction is Transaction => {
+          if (!transaction) return false
+          return typeof transaction.categoryId === "string" && transaction.categoryId.length > 0
+        }),
     [data.transactions],
   )
 
   const safeLoans = useMemo(
     () =>
-      (data.loans ?? []).filter(
-        (loan): loan is Loan =>
-          Boolean(loan) &&
-          typeof loan.principal === "number" &&
-          typeof loan.remainingBalance === "number" &&
-          typeof loan.status === "string",
-      ),
+      (Array.isArray(data.loans) ? data.loans : [])
+        .map((loan) => {
+          if (!loan) return null
+          const principal = typeof loan.principal === "number" ? loan.principal : Number(loan.principal)
+          const remainingBalance =
+            typeof loan.remainingBalance === "number" ? loan.remainingBalance : Number(loan.remainingBalance)
+          if (!Number.isFinite(principal) || !Number.isFinite(remainingBalance)) return null
+          return {
+            ...loan,
+            principal,
+            remainingBalance,
+          } as Loan
+        })
+        .filter((loan): loan is Loan => Boolean(loan) && typeof loan.status === "string"),
     [data.loans],
   )
 
