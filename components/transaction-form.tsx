@@ -237,5 +237,3 @@ export default function TransactionForm({
     </form>
   )
 }
-"use client"
-
