@@ -93,14 +93,14 @@ export default function SettingsPage() {
       <div className="flex min-h-screen flex-col md:flex-row bg-background">
         <Navigation />
 
-        <main className="flex-1 overflow-auto w-full">
-          <div className="p-4 md:p-8 max-w-6xl mx-auto">
+        <main className="flex-1 w-full">
+          <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
             <h1 className="text-3xl font-bold text-foreground mb-8">Settings</h1>
 
             {/* Account Balance */}
-            <Card className="p-6 mb-8">
+            <Card className="p-6">
               <h2 className="text-xl font-semibold text-foreground mb-4">Account Balance</h2>
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   type="number"
                   step="0.01"
@@ -119,7 +119,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Add Category */}
-            <Card className="p-6 mb-8">
+            <Card className="p-6">
               <h2 className="text-xl font-semibold text-foreground mb-4">Add Custom Category</h2>
               {error && <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm mb-4">{error}</div>}
               <form onSubmit={handleAddCategory} className="space-y-4">
@@ -209,7 +209,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Categories */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
               {/* Expense Categories */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Expense Categories</h2>

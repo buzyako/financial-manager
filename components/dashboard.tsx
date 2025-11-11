@@ -146,7 +146,7 @@ export default function Dashboard() {
     <div className="flex min-h-screen flex-col md:flex-row bg-background">
       <Navigation />
 
-      <main className="flex-1 overflow-auto w-full">
+      <main className="flex-1 w-full">
         <div className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full">
           <div className="mb-8 md:mb-10">
             <h1 className="text-5xl font-bold text-foreground mb-2">Finance Manager</h1>
