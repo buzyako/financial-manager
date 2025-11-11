@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { SavingsGoal } from "@/lib/types"
 import { Card } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/utils-finance"
 
 interface GoalsListProps {
   goals: SavingsGoal[]
@@ -123,15 +124,15 @@ export default function GoalsList({ goals, onUpdate, onDelete }: GoalsListProps)
             <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-secondary rounded-lg">
               <div>
                 <p className="text-xs text-muted-foreground">Saved</p>
-                <p className="text-lg font-bold text-accent">${goal.currentAmount.toFixed(2)}</p>
+                <p className="text-lg font-bold text-accent">{formatCurrency(goal.currentAmount)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Remaining</p>
-                <p className="text-lg font-bold text-foreground">${remaining.toFixed(2)}</p>
+                <p className="text-lg font-bold text-foreground">{formatCurrency(remaining)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Target</p>
-                <p className="text-lg font-bold text-foreground">${goal.targetAmount.toFixed(2)}</p>
+                <p className="text-lg font-bold text-foreground">{formatCurrency(goal.targetAmount)}</p>
               </div>
             </div>
 

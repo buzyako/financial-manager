@@ -123,7 +123,7 @@ export default function TransactionForm({ categories, onSuccess, onCancel, initi
         {/* Amount */}
         <div>
           <label htmlFor="amount" className="block text-sm font-medium text-foreground mb-2">
-            Amount ($)
+            Amount (₱)
           </label>
           <input
             id="amount"

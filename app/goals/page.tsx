@@ -7,6 +7,7 @@ import { StorageManager } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
 import GoalForm from "@/components/goal-form"
 import GoalsList from "@/components/goals-list"
+import { formatCurrency } from "@/lib/utils-finance"
 
 export default function GoalsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
@@ -65,11 +66,11 @@ export default function GoalsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card className="p-6">
               <p className="text-sm text-muted-foreground mb-1">Total Saved</p>
-              <p className="text-3xl font-bold text-accent">${totalSavings.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-accent">{formatCurrency(totalSavings)}</p>
             </Card>
             <Card className="p-6">
               <p className="text-sm text-muted-foreground mb-1">Total Target</p>
-              <p className="text-3xl font-bold text-foreground">${totalTarget.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-foreground">{formatCurrency(totalTarget)}</p>
             </Card>
             <Card className="p-6">
               <p className="text-sm text-muted-foreground mb-1">Active Goals</p>

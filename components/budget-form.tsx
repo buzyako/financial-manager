@@ -83,7 +83,7 @@ export default function BudgetForm({ categories, currentMonth, onSuccess, onCanc
         {/* Limit */}
         <div>
           <label htmlFor="limit" className="block text-sm font-medium text-foreground mb-2">
-            Monthly Limit ($)
+            Monthly Limit (₱)
           </label>
           <input
             id="limit"

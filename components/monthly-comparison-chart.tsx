@@ -1,6 +1,7 @@
 "use client"
 
 import type { Transaction } from "@/lib/types"
+import { formatCurrency } from "@/lib/utils-finance"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 interface MonthlyComparisonChartProps {
@@ -46,7 +47,7 @@ export default function MonthlyComparisonChart({ transactions }: MonthlyComparis
             border: "1px solid var(--color-border)",
             color: "var(--color-foreground)",
           }}
-          formatter={(value) => `$${value.toFixed(2)}`}
+          formatter={(value) => formatCurrency(Number(value))}
         />
         <Legend />
         <Bar dataKey="expenses" fill="var(--color-destructive)" name="Expenses" />

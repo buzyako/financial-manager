@@ -2,6 +2,7 @@
 
 import type { Transaction, Category } from "@/lib/types"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { formatCurrency } from "@/lib/utils-finance"
 
 interface CategoryBreakdownChartProps {
   transactions: Transaction[]
@@ -50,7 +51,7 @@ export default function CategoryBreakdownChart({
             border: "1px solid var(--color-border)",
             color: "var(--color-foreground)",
           }}
-          formatter={(value) => `$${value.toFixed(2)}`}
+          formatter={(value) => formatCurrency(Number(value))}
         />
         <Bar dataKey="amount" fill="var(--color-accent)" />
       </BarChart>

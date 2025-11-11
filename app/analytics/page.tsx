@@ -9,6 +9,7 @@ import SpendingTrendChart from "@/components/spending-trend-chart"
 import CategoryBreakdownChart from "@/components/category-breakdown-chart"
 import MonthlyComparisonChart from "@/components/monthly-comparison-chart"
 import AnalyticsStats from "@/components/analytics-stats"
+import { formatCurrency } from "@/lib/utils-finance"
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
@@ -137,7 +138,7 @@ function TopSpendingCategories({ transactions, categories, selectedMonth }: any)
                 <p className="text-xs text-muted-foreground">{percent}% of total</p>
               </div>
             </div>
-            <p className="text-lg font-bold text-foreground">${amount.toFixed(2)}</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(amount)}</p>
           </div>
         )
       })}

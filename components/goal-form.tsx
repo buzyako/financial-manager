@@ -81,7 +81,7 @@ export default function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label htmlFor="target" className="block text-sm font-medium text-foreground mb-2">
-            Target Amount ($)
+            Target Amount (₱)
           </label>
           <input
             id="target"
@@ -97,7 +97,7 @@ export default function GoalForm({ onSuccess, onCancel }: GoalFormProps) {
 
         <div>
           <label htmlFor="current" className="block text-sm font-medium text-foreground mb-2">
-            Current Amount ($)
+            Current Amount (₱)
           </label>
           <input
             id="current"
