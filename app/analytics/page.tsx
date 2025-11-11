@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Navigation from "@/components/navigation"
 import type { FinanceData } from "@/lib/types"
 import { StorageManager } from "@/lib/storage"
@@ -11,6 +11,7 @@ import MonthlyComparisonChart from "@/components/monthly-comparison-chart"
 import AnalyticsStats from "@/components/analytics-stats"
 import { formatCurrency } from "@/lib/utils-finance"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { Button } from "@/components/ui/button"
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
@@ -24,6 +25,65 @@ export default function AnalyticsPage() {
   }, [])
 
   if (!data || !selectedMonth) return null
+
+  const monthTransactions = useMemo(
+    () => data.transactions.filter((transaction) => transaction.date.startsWith(selectedMonth)),
+    [data.transactions, selectedMonth],
+  )
+  const monthExpenses = monthTransactions.filter((transaction) => transaction.type === "expense")
+  const monthIncome = monthTransactions.filter((transaction) => transaction.type === "income")
+  const totalExpenses = monthExpenses.reduce((sum, transaction) => sum + transaction.amount, 0)
+  const totalIncome = monthIncome.reduce((sum, transaction) => sum + transaction.amount, 0)
+  const netBalance = totalIncome - totalExpenses
+  const averageExpense = monthExpenses.length > 0 ? totalExpenses / monthExpenses.length : 0
+  const averageIncome = monthIncome.length > 0 ? totalIncome / monthIncome.length : 0
+  const transactionCount = monthTransactions.length
+
+  const categoryTotals = monthExpenses.reduce<Record<string, number>>((acc, transaction) => {
+    acc[transaction.categoryId] = (acc[transaction.categoryId] || 0) + transaction.amount
+    return acc
+  }, {})
+
+  const topCategoryEntry = Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([categoryId, amount]) => ({
+      categoryId,
+      amount,
+      category: data.categories.find((category) => category.id === categoryId),
+    }))[0]
+
+  const topCategoryLabel = topCategoryEntry
+    ? `${topCategoryEntry.category?.name ?? "Deleted Category"} (${formatCurrency(topCategoryEntry.amount)})`
+    : "—"
+
+  const handleExport = () => {
+    if (monthTransactions.length === 0) return
+    const toCsvValue = (value: string) => `"${value.replace(/"/g, '""')}"`
+    const header = ["Date", "Type", "Category", "Description", "Amount", "Recurring"]
+    const rows = monthTransactions.map((transaction) => {
+      const category = data.categories.find((category) => category.id === transaction.categoryId)
+      return [
+        transaction.date,
+        transaction.type,
+        category?.name ?? "Uncategorized",
+        transaction.description,
+        transaction.amount.toFixed(2),
+        transaction.isRecurring ? transaction.recurringPattern ?? "recurring" : "one-time",
+      ]
+    })
+
+    const csvContent = [header, ...rows]
+      .map((row) => row.map((cell) => toCsvValue(String(cell))).join(","))
+      .join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `finance-report-${selectedMonth}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <ProtectedRoute>
@@ -58,6 +118,67 @@ export default function AnalyticsPage() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
+            </Card>
+
+            <Card className="p-6 mb-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Monthly Summary</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Key performance indicators for {selectedMonth || "this month"}.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={handleExport} disabled={monthTransactions.length === 0}>
+                  Export CSV
+                </Button>
+              </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-border">
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Transactions recorded</td>
+                      <td className="py-2 font-medium text-foreground">{transactionCount}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Total income</td>
+                      <td className="py-2 font-medium text-accent">{formatCurrency(totalIncome)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Total expenses</td>
+                      <td className="py-2 font-medium text-destructive">{formatCurrency(totalExpenses)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Net position</td>
+                      <td
+                        className={`py-2 font-medium ${
+                          netBalance >= 0 ? "text-accent" : "text-destructive"
+                        }`}
+                      >
+                        {formatCurrency(netBalance)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Average income per entry</td>
+                      <td className="py-2 font-medium text-foreground">{formatCurrency(averageIncome)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Average expense per entry</td>
+                      <td className="py-2 font-medium text-foreground">{formatCurrency(averageExpense)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Top spending category</td>
+                      <td className="py-2 font-medium text-foreground">{topCategoryLabel}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {monthTransactions.length === 0 && (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Add income and expenses for {selectedMonth} to unlock detailed reporting.
+                </p>
+              )}
             </Card>
 
             {/* Charts */}

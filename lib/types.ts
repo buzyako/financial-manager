@@ -70,3 +70,12 @@ export interface AuthFormState {
   loading: boolean
   error?: string
 }
+
+export type OnboardingStepKey = "accountBalance" | "transaction" | "budget" | "goal"
+
+export interface OnboardingState {
+  steps: Record<OnboardingStepKey, boolean>
+  completed: boolean
+  dismissed: boolean
+  updatedAt: string
+}

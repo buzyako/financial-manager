@@ -1,10 +1,31 @@
 import { generateId } from "@/lib/utils"
-import type { FinanceData, Category, Transaction, Budget, SavingsGoal, User, AuthSession } from "./types"
+import type {
+  FinanceData,
+  Category,
+  Transaction,
+  Budget,
+  SavingsGoal,
+  User,
+  AuthSession,
+  OnboardingState,
+} from "./types"
 
 const STORAGE_KEY = "finance-app-data"
 const USERS_KEY = "finance-app-users"
 const AUTH_SESSION_KEY = "finance-app-session"
 const AUTH_INTENT_KEY = "finance-app-auth-intent"
+const ONBOARDING_KEY = "finance-app-onboarding"
+const ONBOARDING_DEFAULT_STATE: OnboardingState = {
+  steps: {
+    accountBalance: false,
+    transaction: false,
+    budget: false,
+    goal: false,
+  },
+  completed: false,
+  dismissed: false,
+  updatedAt: new Date().toISOString(),
+}
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: "1", name: "Food & Dining", icon: "🍽️", color: "#FF6B6B", type: "expense" },
@@ -23,7 +44,7 @@ const DEFAULT_DATA: FinanceData = {
   budgets: [],
   savingsGoals: [],
   categories: DEFAULT_CATEGORIES,
-  accountBalance: 5000,
+  accountBalance: 0,
 }
 
 export const StorageManager = {
@@ -122,6 +143,44 @@ export const StorageManager = {
     const intent = localStorage.getItem(AUTH_INTENT_KEY)
     localStorage.removeItem(AUTH_INTENT_KEY)
     return intent
+  },
+
+  getOnboardingState: (userId: string): OnboardingState => {
+    if (typeof window === "undefined") return { ...ONBOARDING_DEFAULT_STATE }
+    try {
+      const stored = localStorage.getItem(ONBOARDING_KEY)
+      const allStates: Record<string, OnboardingState> = stored ? JSON.parse(stored) : {}
+      return allStates[userId]
+        ? { ...ONBOARDING_DEFAULT_STATE, ...allStates[userId] }
+        : { ...ONBOARDING_DEFAULT_STATE }
+    } catch {
+      return { ...ONBOARDING_DEFAULT_STATE }
+    }
+  },
+
+  saveOnboardingState: (userId: string, state: OnboardingState): void => {
+    if (typeof window === "undefined") return
+    try {
+      const stored = localStorage.getItem(ONBOARDING_KEY)
+      const allStates: Record<string, OnboardingState> = stored ? JSON.parse(stored) : {}
+      allStates[userId] = state
+      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(allStates))
+    } catch {
+      // ignore
+    }
+  },
+
+  clearOnboardingState: (userId: string): void => {
+    if (typeof window === "undefined") return
+    try {
+      const stored = localStorage.getItem(ONBOARDING_KEY)
+      if (!stored) return
+      const allStates: Record<string, OnboardingState> = JSON.parse(stored)
+      delete allStates[userId]
+      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(allStates))
+    } catch {
+      // ignore
+    }
   },
 
   addTransaction: (transaction: Transaction): void => {
