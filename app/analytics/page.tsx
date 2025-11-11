@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Navigation from "@/components/navigation"
-import type { FinanceData, Loan } from "@/lib/types"
+import type { FinanceData, Transaction, Loan } from "@/lib/types"
 import { StorageManager } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
 import SpendingTrendChart from "@/components/spending-trend-chart"
@@ -12,29 +12,14 @@ import AnalyticsStats from "@/components/analytics-stats"
 import { formatCurrency } from "@/lib/utils-finance"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Button } from "@/components/ui/button"
-import { AlertCircle } from "lucide-react"
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
   const [selectedMonth, setSelectedMonth] = useState("")
-  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    try {
-      const financeData = StorageManager.getData()
-      const safeLoans: Loan[] = Array.isArray(financeData.loans)
-        ? financeData.loans.filter((loan): loan is Loan => loan && typeof loan === "object")
-        : []
-      setData({
-        ...financeData,
-        loans: safeLoans,
-        transactions: financeData.transactions?.filter(Boolean) ?? [],
-        categories: financeData.categories?.filter(Boolean) ?? [],
-      })
-    } catch (err) {
-      console.error("Failed to load analytics data", err)
-      setLoadError("There was a problem loading analytics data.")
-    }
+    const financeData = StorageManager.getData()
+    setData(financeData)
     const now = new Date()
     setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`)
   }, [])
@@ -54,15 +39,36 @@ export default function AnalyticsPage() {
     )
   }
 
-  const { transactions: monthTransactions, error: transactionsError } = useMemo(() => {
-    try {
-      const filtered = (data.transactions ?? []).filter((transaction) => transaction?.date?.startsWith(selectedMonth))
-      return { transactions: filtered, error: null as string | null }
-    } catch (err) {
-      console.error("Failed to compute monthly transactions", err)
-      return { transactions: [] as typeof data.transactions, error: "There was a problem calculating transactions." }
-    }
-  }, [data.transactions, selectedMonth])
+  const safeCategories = useMemo(() => data.categories ?? [], [data.categories])
+
+  const safeTransactions = useMemo(
+    () =>
+      (data.transactions ?? []).filter(
+        (transaction): transaction is Transaction =>
+          Boolean(transaction) &&
+          typeof transaction.categoryId === "string" &&
+          typeof transaction.date === "string" &&
+          !Number.isNaN(Number(transaction.amount)),
+      ),
+    [data.transactions],
+  )
+
+  const safeLoans = useMemo(
+    () =>
+      (data.loans ?? []).filter(
+        (loan): loan is Loan =>
+          Boolean(loan) &&
+          typeof loan.principal === "number" &&
+          typeof loan.remainingBalance === "number" &&
+          typeof loan.status === "string",
+      ),
+    [data.loans],
+  )
+
+  const monthTransactions = useMemo(
+    () => safeTransactions.filter((transaction) => transaction.date.startsWith(selectedMonth)),
+    [safeTransactions, selectedMonth],
+  )
   const monthExpenses = monthTransactions.filter((transaction) => transaction.type === "expense")
   const monthIncome = monthTransactions.filter((transaction) => transaction.type === "income")
   const totalExpenses = monthExpenses.reduce((sum, transaction) => sum + transaction.amount, 0)
@@ -73,8 +79,7 @@ export default function AnalyticsPage() {
   const transactionCount = monthTransactions.length
 
   const categoryTotals = monthExpenses.reduce<Record<string, number>>((acc, transaction) => {
-    if (!transaction?.categoryId) return acc
-    acc[transaction.categoryId] = (acc[transaction.categoryId] || 0) + (transaction.amount || 0)
+    acc[transaction.categoryId] = (acc[transaction.categoryId] || 0) + transaction.amount
     return acc
   }, {})
 
@@ -90,61 +95,40 @@ export default function AnalyticsPage() {
     ? `${topCategoryEntry.category?.name ?? "Deleted Category"} (${formatCurrency(topCategoryEntry.amount)})`
     : "—"
 
-  const { metrics: loanMetrics, error: loanError } = useMemo(() => {
-    try {
-      const loans = data.loans ?? []
-      const activeLoans = loans.filter((loan) => loan?.status === "active")
-      const outstandingBalance = activeLoans.reduce(
-        (sum, loan) => sum + (Number.isFinite(loan.remainingBalance) ? loan.remainingBalance : 0),
-        0,
-      )
-      const totalBorrowed = loans.reduce(
-        (sum, loan) => sum + (Number.isFinite(loan.principal) ? loan.principal : 0),
-        0,
-      )
-      const upcomingDates = activeLoans
-        .map((loan) => {
-          if (!loan?.nextPaymentDate) return null
-          const date = new Date(loan.nextPaymentDate)
-          return Number.isNaN(date.getTime()) ? null : date
-        })
-        .filter((date): date is Date => Boolean(date))
-        .map((date) => date.getTime())
-      const nextPayment =
-        upcomingDates.length > 0 ? new Date(Math.min(...upcomingDates)).toLocaleDateString() : "Not scheduled"
+  const loanMetrics = useMemo(() => {
+    if (safeLoans.length === 0) {
       return {
-        metrics: {
-          active: activeLoans.length,
-          outstandingBalance,
-          totalBorrowed,
-          nextPayment,
-        },
-        error: null as string | null,
-      }
-    } catch (err) {
-      console.error("Failed to compute loan metrics", err)
-      return {
-        metrics: {
-          active: 0,
-          outstandingBalance: 0,
-          totalBorrowed: 0,
-          nextPayment: "Not scheduled",
-        },
-        error: "There was a problem calculating loan metrics.",
+        active: 0,
+        outstandingBalance: 0,
+        totalBorrowed: 0,
+        nextPayment: "Not scheduled",
       }
     }
-  }, [data.loans])
 
-  const combinedErrors = useMemo(() => {
-    return [loadError, transactionsError, loanError].filter(Boolean) as string[]
-  }, [loadError, transactionsError, loanError])
+    const activeLoans = safeLoans.filter((loan) => loan.status === "active")
+    const outstandingBalance = activeLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
+    const totalBorrowed = safeLoans.reduce((sum, loan) => sum + loan.principal, 0)
+    const upcomingDates = activeLoans
+      .map((loan) => (loan.nextPaymentDate ? new Date(loan.nextPaymentDate) : null))
+      .filter((date): date is Date => Boolean(date) && !Number.isNaN(date.getTime()))
+      .map((date) => date.getTime())
+    const nextPayment =
+      upcomingDates.length > 0 ? new Date(Math.min(...upcomingDates)).toLocaleDateString() : "Not scheduled"
+
+    return {
+      active: activeLoans.length,
+      outstandingBalance,
+      totalBorrowed,
+      nextPayment,
+    }
+  }, [safeLoans])
 
   const handleExport = () => {
     if (monthTransactions.length === 0) return
     const toCsvValue = (value: string) => `"${value.replace(/"/g, '""')}"`
     const header = ["Date", "Type", "Category", "Description", "Amount", "Recurring"]
     const rows = monthTransactions.map((transaction) => {
-      const category = data.categories.find((category) => category.id === transaction.categoryId)
+      const category = safeCategories.find((category) => category.id === transaction.categoryId)
       return [
         transaction.date,
         transaction.type,
@@ -175,27 +159,6 @@ export default function AnalyticsPage() {
 
         <main className="flex-1 overflow-auto w-full">
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-            {combinedErrors.length > 0 && (
-              <Card className="border border-destructive/30 bg-destructive/10 p-4">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
-                    <div>
-                      <p className="text-sm font-semibold text-destructive">Analytics data issue</p>
-                      <p className="text-sm text-destructive/80">
-                        {combinedErrors.join(" ")} Try refreshing the page. If the issue continues, review your
-                        transactions, loans, and recurring entries for incomplete information.
-                        recurring entries for incomplete information.
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => location.reload()}>
-                    Refresh
-                  </Button>
-                </div>
-              </Card>
-            )}
-
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">Analytics & Reports</h1>
               <p className="text-muted-foreground">Visualize your spending trends and financial patterns</p>
@@ -204,8 +167,8 @@ export default function AnalyticsPage() {
             {/* Stats Overview */}
             <div className="my-8">
               <AnalyticsStats
-                transactions={data.transactions}
-                categories={data.categories}
+                transactions={safeTransactions}
+                categories={safeCategories}
                 selectedMonth={selectedMonth}
               />
             </div>
@@ -307,20 +270,20 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Card className="p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Spending Trend (Last 12 Months)</h2>
-                <SpendingTrendChart transactions={data.transactions ?? []} />
+                <SpendingTrendChart transactions={safeTransactions} />
               </Card>
 
               <Card className="p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Monthly Comparison</h2>
-                <MonthlyComparisonChart transactions={data.transactions ?? []} />
+                <MonthlyComparisonChart transactions={safeTransactions} />
               </Card>
             </div>
 
             <Card className="p-6 mb-8">
               <h2 className="text-lg font-semibold text-foreground mb-4">Category Breakdown - {selectedMonth}</h2>
               <CategoryBreakdownChart
-                transactions={data.transactions}
-                categories={data.categories}
+                transactions={safeTransactions}
+                categories={safeCategories}
                 selectedMonth={selectedMonth}
               />
             </Card>
@@ -329,8 +292,8 @@ export default function AnalyticsPage() {
             <Card className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">Top Spending Categories</h2>
               <TopSpendingCategories
-                transactions={data.transactions}
-                categories={data.categories}
+                transactions={safeTransactions}
+                categories={safeCategories}
                 selectedMonth={selectedMonth}
               />
             </Card>
