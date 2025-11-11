@@ -45,10 +45,10 @@ export default function RecurringPage() {
   const stats = getRecurringTransactionStats(data.transactions)
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen flex-col md:flex-row bg-background">
       <Navigation />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto w-full">
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Recurring Transactions</h1>

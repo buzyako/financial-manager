@@ -70,7 +70,7 @@ export default function Navigation() {
       </nav>
 
       <div className="md:hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           {renderBrand()}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>

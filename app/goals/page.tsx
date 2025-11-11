@@ -42,10 +42,10 @@ export default function GoalsPage() {
   const totalTarget = data.savingsGoals.reduce((sum, g) => sum + g.targetAmount, 0)
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen flex-col md:flex-row bg-background">
       <Navigation />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto w-full">
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>

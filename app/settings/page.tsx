@@ -88,10 +88,10 @@ export default function SettingsPage() {
   const incomeCategories = data.categories.filter((c) => c.type === "income")
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen flex-col md:flex-row bg-background">
       <Navigation />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto w-full">
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-8">Settings</h1>
 
