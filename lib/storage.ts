@@ -8,6 +8,8 @@ import type {
   User,
   AuthSession,
   OnboardingState,
+  Loan,
+  LoanPayment,
 } from "./types"
 
 const STORAGE_KEY = "finance-app-data"
@@ -15,6 +17,8 @@ const USERS_KEY = "finance-app-users"
 const AUTH_SESSION_KEY = "finance-app-session"
 const AUTH_INTENT_KEY = "finance-app-auth-intent"
 const ONBOARDING_KEY = "finance-app-onboarding"
+const LOANS_KEY = "finance-app-loans"
+const LOAN_PAYMENTS_KEY = "finance-app-loan-payments"
 const ONBOARDING_DEFAULT_STATE: OnboardingState = {
   steps: {
     accountBalance: false,
@@ -45,14 +49,21 @@ const DEFAULT_DATA: FinanceData = {
   savingsGoals: [],
   categories: DEFAULT_CATEGORIES,
   accountBalance: 0,
+  loans: [],
 }
 
 export const StorageManager = {
   getData: (): FinanceData => {
     if (typeof window === "undefined") return DEFAULT_DATA
     try {
-      const data = localStorage.getItem(STORAGE_KEY)
-      return data ? JSON.parse(data) : DEFAULT_DATA
+      const stored = localStorage.getItem(STORAGE_KEY)
+      const parsed = stored ? JSON.parse(stored) : DEFAULT_DATA
+      const loans = StorageManager.getLoans()
+      return {
+        ...DEFAULT_DATA,
+        ...parsed,
+        loans,
+      }
     } catch {
       return DEFAULT_DATA
     }
@@ -60,7 +71,11 @@ export const StorageManager = {
 
   saveData: (data: FinanceData): void => {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    const payload: FinanceData = {
+      ...data,
+      loans: StorageManager.getLoans(),
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   },
 
   getUsers: (): User[] => {
@@ -170,6 +185,36 @@ export const StorageManager = {
     }
   },
 
+  getLoans: (): Loan[] => {
+    if (typeof window === "undefined") return []
+    try {
+      const stored = localStorage.getItem(LOANS_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  },
+
+  saveLoans: (loans: Loan[]): void => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(LOANS_KEY, JSON.stringify(loans))
+  },
+
+  getLoanPayments: (): LoanPayment[] => {
+    if (typeof window === "undefined") return []
+    try {
+      const stored = localStorage.getItem(LOAN_PAYMENTS_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  },
+
+  saveLoanPayments: (payments: LoanPayment[]): void => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(LOAN_PAYMENTS_KEY, JSON.stringify(payments))
+  },
+
   clearOnboardingState: (userId: string): void => {
     if (typeof window === "undefined") return
     try {
@@ -240,6 +285,68 @@ export const StorageManager = {
     const data = StorageManager.getData()
     data.savingsGoals = data.savingsGoals.filter((g) => g.id !== id)
     StorageManager.saveData(data)
+  },
+
+  listLoans: (): Loan[] => StorageManager.getLoans(),
+
+  createLoan: (loan: Omit<Loan, "id" | "createdAt" | "updatedAt" | "remainingBalance">): Loan => {
+    const loans = StorageManager.getLoans()
+    const now = new Date().toISOString()
+    const newLoan: Loan = {
+      ...loan,
+      id: generateId(),
+      remainingBalance: loan.principal,
+      createdAt: now,
+      updatedAt: now,
+    }
+    loans.push(newLoan)
+    StorageManager.saveLoans(loans)
+    return newLoan
+  },
+
+  updateLoan: (loan: Loan): void => {
+    const loans = StorageManager.getLoans()
+    const index = loans.findIndex((existing) => existing.id === loan.id)
+    if (index !== -1) {
+      loans[index] = { ...loan, updatedAt: new Date().toISOString() }
+      StorageManager.saveLoans(loans)
+    }
+  },
+
+  deleteLoan: (loanId: string): void => {
+    const loans = StorageManager.getLoans().filter((loan) => loan.id !== loanId)
+    StorageManager.saveLoans(loans)
+    const payments = StorageManager.getLoanPayments().filter((payment) => payment.loanId !== loanId)
+    StorageManager.saveLoanPayments(payments)
+  },
+
+  listLoanPayments: (loanId?: string): LoanPayment[] => {
+    const payments = StorageManager.getLoanPayments()
+    if (!loanId) return payments
+    return payments.filter((payment) => payment.loanId === loanId)
+  },
+
+  addLoanPayment: (payment: Omit<LoanPayment, "id">): LoanPayment => {
+    const payments = StorageManager.getLoanPayments()
+    const loans = StorageManager.getLoans()
+    const loan = loans.find((item) => item.id === payment.loanId)
+    if (!loan) {
+      throw new Error("Loan not found")
+    }
+    const newPayment: LoanPayment = {
+      ...payment,
+      id: generateId(),
+    }
+    payments.push(newPayment)
+    StorageManager.saveLoanPayments(payments)
+
+    const updatedLoan: Loan = {
+      ...loan,
+      remainingBalance: Math.max(0, loan.remainingBalance - payment.amount),
+      updatedAt: new Date().toISOString(),
+    }
+    StorageManager.updateLoan(updatedLoan)
+    return newPayment
   },
 
   addCategory: (category: Category): void => {

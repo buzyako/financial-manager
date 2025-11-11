@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { TrendingDown, TrendingUp, Target, Plus } from "lucide-react"
+import { TrendingDown, TrendingUp, Target, Plus, Landmark } from "lucide-react"
 
 export default function QuickActions() {
   return (
     <Card className="card-premium p-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Link href="/transactions?type=expense">
           <Button
             variant="outline"
@@ -42,6 +42,15 @@ export default function QuickActions() {
           >
             <Plus className="w-4 h-4" />
             Goal
+          </Button>
+        </Link>
+        <Link href="/loans">
+          <Button
+            variant="outline"
+            className="w-full btn-premium flex items-center gap-2 hover:bg-primary/5 hover:text-primary hover:border-primary/30 bg-transparent"
+          >
+            <Landmark className="w-4 h-4" />
+            Loan
           </Button>
         </Link>
       </div>

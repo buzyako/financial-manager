@@ -56,6 +56,23 @@ export default function AnalyticsPage() {
     ? `${topCategoryEntry.category?.name ?? "Deleted Category"} (${formatCurrency(topCategoryEntry.amount)})`
     : "—"
 
+  const loanMetrics = useMemo(() => {
+    const activeLoans = data.loans.filter((loan) => loan.status === "active")
+    const outstandingBalance = activeLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
+    const totalBorrowed = data.loans.reduce((sum, loan) => sum + loan.principal, 0)
+    const upcomingDates = activeLoans
+      .filter((loan) => loan.nextPaymentDate)
+      .map((loan) => new Date(loan.nextPaymentDate as string).getTime())
+    const nextPayment =
+      upcomingDates.length > 0 ? new Date(Math.min(...upcomingDates)).toLocaleDateString() : "Not scheduled"
+    return {
+      active: activeLoans.length,
+      outstandingBalance,
+      totalBorrowed,
+      nextPayment,
+    }
+  }, [data.loans])
+
   const handleExport = () => {
     if (monthTransactions.length === 0) return
     const toCsvValue = (value: string) => `"${value.replace(/"/g, '""')}"`
@@ -169,6 +186,24 @@ export default function AnalyticsPage() {
                     <tr>
                       <td className="py-2 pr-4 text-muted-foreground">Top spending category</td>
                       <td className="py-2 font-medium text-foreground">{topCategoryLabel}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Active loans</td>
+                      <td className="py-2 font-medium text-foreground">{loanMetrics.active}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Outstanding loan balance</td>
+                      <td className="py-2 font-medium text-foreground">
+                        {formatCurrency(loanMetrics.outstandingBalance)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Total borrowed</td>
+                      <td className="py-2 font-medium text-foreground">{formatCurrency(loanMetrics.totalBorrowed)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-muted-foreground">Next loan payment</td>
+                      <td className="py-2 font-medium text-foreground">{loanMetrics.nextPayment}</td>
                     </tr>
                   </tbody>
                 </table>

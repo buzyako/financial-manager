@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, CreditCard, Target, TrendingUp, BarChart3, Settings, Repeat, Menu } from "lucide-react"
+import { LayoutDashboard, CreditCard, Target, TrendingUp, BarChart3, Settings, Repeat, Menu, Landmark } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/transactions", label: "Transactions", icon: CreditCard },
   { href: "/budgets", label: "Budgets", icon: Target },
   { href: "/goals", label: "Goals", icon: TrendingUp },
+  { href: "/loans", label: "Loans", icon: Landmark },
   { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },

@@ -39,6 +39,7 @@ export interface FinanceData {
   savingsGoals: SavingsGoal[]
   categories: Category[]
   accountBalance: number
+  loans: Loan[]
 }
 
 export interface User {
@@ -78,4 +79,28 @@ export interface OnboardingState {
   completed: boolean
   dismissed: boolean
   updatedAt: string
+}
+
+export interface Loan {
+  id: string
+  name: string
+  type: "loan" | "debt"
+  principal: number
+  interestRate: number
+  paymentAmount: number
+  remainingBalance: number
+  startDate: string
+  nextPaymentDate?: string
+  status: "active" | "paid" | "default"
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LoanPayment {
+  id: string
+  loanId: string
+  amount: number
+  date: string
+  notes?: string
 }

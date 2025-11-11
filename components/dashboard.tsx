@@ -19,6 +19,7 @@ import BalanceCard from "./balance-card"
 import BudgetStatus from "./budget-status"
 import RecentTransactions from "./recent-transactions"
 import QuickActions from "./quick-actions"
+import { LoanOverviewCard } from "@/components/loan-overview-card"
 import { useAuth } from "@/context/auth-context"
 import { OnboardingDialog, onboardingStepMeta } from "@/components/onboarding/onboarding-dialog"
 
@@ -196,7 +197,7 @@ export default function Dashboard() {
           )}
 
           {/* Top Cards Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 xl:grid-cols-3">
             <BalanceCard balance={data.accountBalance} />
             <BudgetStatus
               spending={monthlySpending}
@@ -205,6 +206,7 @@ export default function Dashboard() {
               budgets={currentBudgetMonth}
               categories={data.categories}
             />
+            <LoanOverviewCard loans={data.loans ?? []} />
           </div>
 
           {/* Charts and Recent Transactions Row */}
