@@ -62,8 +62,13 @@ export default function AnalyticsPage() {
     const outstandingBalance = activeLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
     const totalBorrowed = loans.reduce((sum, loan) => sum + loan.principal, 0)
     const upcomingDates = activeLoans
-      .filter((loan) => loan.nextPaymentDate)
-      .map((loan) => new Date(loan.nextPaymentDate as string).getTime())
+      .map((loan) => {
+        if (!loan.nextPaymentDate) return null
+        const date = new Date(loan.nextPaymentDate)
+        return Number.isNaN(date.getTime()) ? null : date
+      })
+      .filter((date): date is Date => Boolean(date))
+      .map((date) => date.getTime())
     const nextPayment =
       upcomingDates.length > 0 ? new Date(Math.min(...upcomingDates)).toLocaleDateString() : "Not scheduled"
     return {
