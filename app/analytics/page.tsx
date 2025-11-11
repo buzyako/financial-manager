@@ -40,13 +40,13 @@ export default function AnalyticsPage() {
   }
 
   const safeCategories = useMemo(
-    () => (Array.isArray(data.categories) ? data.categories.filter(Boolean) : []),
-    [data.categories],
+    () => (Array.isArray(data?.categories) ? data.categories!.filter(Boolean) : []),
+    [data?.categories],
   )
 
   const safeTransactions = useMemo(
     () =>
-      (Array.isArray(data.transactions) ? data.transactions : [])
+      (Array.isArray(data?.transactions) ? data.transactions! : [])
         .map((transaction) => {
           if (!transaction) return null
           const amount = typeof transaction.amount === "number" ? transaction.amount : Number(transaction.amount)
@@ -62,12 +62,12 @@ export default function AnalyticsPage() {
           if (!transaction) return false
           return typeof transaction.categoryId === "string" && transaction.categoryId.length > 0
         }),
-    [data.transactions],
+    [data?.transactions],
   )
 
   const safeLoans = useMemo(
     () =>
-      (Array.isArray(data.loans) ? data.loans : [])
+      (Array.isArray(data?.loans) ? data.loans! : [])
         .map((loan) => {
           if (!loan) return null
           const principal = typeof loan.principal === "number" ? loan.principal : Number(loan.principal)
@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
           } as Loan
         })
         .filter((loan): loan is Loan => Boolean(loan) && typeof loan.status === "string"),
-    [data.loans],
+    [data?.loans],
   )
 
   const monthTransactions = useMemo(
