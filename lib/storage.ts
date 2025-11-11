@@ -1,4 +1,5 @@
 import { generateId } from "@/lib/utils"
+import { z } from "zod"
 import type {
   FinanceData,
   Category,
@@ -11,6 +12,15 @@ import type {
   Loan,
   LoanPayment,
 } from "./types"
+import {
+  financeDataSchema,
+  transactionSchema,
+  transactionInputSchema,
+  loanSchema,
+  loanInputSchema,
+  loanPaymentSchema,
+  loanPaymentInputSchema,
+} from "./schemas"
 
 const STORAGE_KEY = "finance-app-data"
 const USERS_KEY = "finance-app-users"
@@ -52,30 +62,59 @@ const DEFAULT_DATA: FinanceData = {
   loans: [],
 }
 
+const sanitizeFinanceData = (data: FinanceData): FinanceData => {
+  const categoryIds = new Set(data.categories.map((category) => category.id))
+  const transactions = data.transactions.filter((transaction) => categoryIds.has(transaction.categoryId))
+  const budgets = data.budgets.filter((budget) => categoryIds.has(budget.categoryId))
+  const savingsGoals = data.savingsGoals.filter((goal) => goal.targetAmount >= goal.currentAmount)
+
+  return {
+    ...data,
+    transactions,
+    budgets,
+    savingsGoals,
+    loans: data.loans ?? [],
+  }
+}
+
 export const StorageManager = {
   getData: (): FinanceData => {
     if (typeof window === "undefined") return DEFAULT_DATA
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      const parsed = stored ? JSON.parse(stored) : DEFAULT_DATA
-      const loans = StorageManager.getLoans()
-      return {
-        ...DEFAULT_DATA,
-        ...parsed,
-        loans,
+      if (!stored) return DEFAULT_DATA
+
+      const parsedJson = JSON.parse(stored)
+      const parsed = financeDataSchema.safeParse(parsedJson)
+      if (!parsed.success) {
+        console.warn("Invalid finance data detected. Resetting to defaults.", parsed.error)
+        return DEFAULT_DATA
       }
-    } catch {
+
+      const loans = StorageManager.getLoans()
+      const sanitized = sanitizeFinanceData({
+        ...parsed.data,
+        loans,
+      })
+      return sanitized
+    } catch (err) {
+      console.error("Failed to read finance data", err)
       return DEFAULT_DATA
     }
   },
 
   saveData: (data: FinanceData): void => {
     if (typeof window === "undefined") return
-    const payload: FinanceData = {
-      ...data,
-      loans: StorageManager.getLoans(),
+    try {
+      const payload = sanitizeFinanceData({
+        ...data,
+        loans: data.loans ?? StorageManager.getLoans(),
+      })
+      financeDataSchema.parse(payload)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    } catch (err) {
+      console.error("Failed to persist finance data", err)
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   },
 
   getUsers: (): User[] => {
@@ -189,30 +228,56 @@ export const StorageManager = {
     if (typeof window === "undefined") return []
     try {
       const stored = localStorage.getItem(LOANS_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch {
+      if (!stored) return []
+      const parsedJson = JSON.parse(stored)
+      const parsed = z.array(loanSchema).safeParse(parsedJson)
+      if (!parsed.success) {
+        console.warn("Invalid loan records detected. Clearing invalid entries.", parsed.error)
+        return []
+      }
+      return parsed.data
+    } catch (err) {
+      console.error("Failed to read loans", err)
       return []
     }
   },
 
   saveLoans: (loans: Loan[]): void => {
     if (typeof window === "undefined") return
-    localStorage.setItem(LOANS_KEY, JSON.stringify(loans))
+    try {
+      const parsed = z.array(loanSchema).parse(loans)
+      localStorage.setItem(LOANS_KEY, JSON.stringify(parsed))
+    } catch (err) {
+      console.error("Failed to persist loans", err)
+    }
   },
 
   getLoanPayments: (): LoanPayment[] => {
     if (typeof window === "undefined") return []
     try {
       const stored = localStorage.getItem(LOAN_PAYMENTS_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch {
+      if (!stored) return []
+      const parsedJson = JSON.parse(stored)
+      const parsed = z.array(loanPaymentSchema).safeParse(parsedJson)
+      if (!parsed.success) {
+        console.warn("Invalid loan payments detected. Clearing invalid entries.", parsed.error)
+        return []
+      }
+      return parsed.data
+    } catch (err) {
+      console.error("Failed to read loan payments", err)
       return []
     }
   },
 
   saveLoanPayments: (payments: LoanPayment[]): void => {
     if (typeof window === "undefined") return
-    localStorage.setItem(LOAN_PAYMENTS_KEY, JSON.stringify(payments))
+    try {
+      const parsed = z.array(loanPaymentSchema).parse(payments)
+      localStorage.setItem(LOAN_PAYMENTS_KEY, JSON.stringify(parsed))
+    } catch (err) {
+      console.error("Failed to persist loan payments", err)
+    }
   },
 
   clearOnboardingState: (userId: string): void => {
@@ -230,10 +295,17 @@ export const StorageManager = {
 
   addTransaction: (transaction: Transaction): void => {
     const data = StorageManager.getData()
-    const entry: Transaction = {
-      ...transaction,
-      id: transaction.id || generateId(),
+    if (!data.categories.some((category) => category.id === transaction.categoryId)) {
+      throw new Error("Invalid category for transaction.")
     }
+    const validatedInput = transactionInputSchema.parse({
+      ...transaction,
+      recurringPattern: transaction.isRecurring ? transaction.recurringPattern : undefined,
+    })
+    const entry: Transaction = transactionSchema.parse({
+      ...validatedInput,
+      id: transaction.id || generateId(),
+    })
     data.transactions.push(entry)
     data.accountBalance += entry.type === "income" ? entry.amount : -entry.amount
     StorageManager.saveData(data)
@@ -292,13 +364,14 @@ export const StorageManager = {
   createLoan: (loan: Omit<Loan, "id" | "createdAt" | "updatedAt" | "remainingBalance">): Loan => {
     const loans = StorageManager.getLoans()
     const now = new Date().toISOString()
-    const newLoan: Loan = {
-      ...loan,
+    const input = loanInputSchema.parse(loan)
+    const newLoan: Loan = loanSchema.parse({
+      ...input,
       id: generateId(),
-      remainingBalance: loan.principal,
+      remainingBalance: input.principal,
       createdAt: now,
       updatedAt: now,
-    }
+    })
     loans.push(newLoan)
     StorageManager.saveLoans(loans)
     return newLoan
@@ -308,7 +381,7 @@ export const StorageManager = {
     const loans = StorageManager.getLoans()
     const index = loans.findIndex((existing) => existing.id === loan.id)
     if (index !== -1) {
-      loans[index] = { ...loan, updatedAt: new Date().toISOString() }
+      loans[index] = loanSchema.parse({ ...loan, updatedAt: new Date().toISOString() })
       StorageManager.saveLoans(loans)
     }
   },
@@ -333,18 +406,19 @@ export const StorageManager = {
     if (!loan) {
       throw new Error("Loan not found")
     }
-    const newPayment: LoanPayment = {
-      ...payment,
+    const input = loanPaymentInputSchema.parse(payment)
+    const newPayment: LoanPayment = loanPaymentSchema.parse({
+      ...input,
       id: generateId(),
-    }
+    })
     payments.push(newPayment)
     StorageManager.saveLoanPayments(payments)
 
-    const updatedLoan: Loan = {
+    const updatedLoan: Loan = loanSchema.parse({
       ...loan,
-      remainingBalance: Math.max(0, loan.remainingBalance - payment.amount),
+      remainingBalance: Math.max(0, loan.remainingBalance - newPayment.amount),
       updatedAt: new Date().toISOString(),
-    }
+    })
     StorageManager.updateLoan(updatedLoan)
     return newPayment
   },

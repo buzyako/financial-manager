@@ -17,7 +17,7 @@ import { AlertCircle } from "lucide-react"
 export default function AnalyticsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
   const [selectedMonth, setSelectedMonth] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
       })
     } catch (err) {
       console.error("Failed to load analytics data", err)
-      setError("There was a problem loading analytics data.")
+      setLoadError("There was a problem loading analytics data.")
     }
     const now = new Date()
     setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`)
@@ -54,13 +54,13 @@ export default function AnalyticsPage() {
     )
   }
 
-  const monthTransactions = useMemo(() => {
+  const { transactions: monthTransactions, error: transactionsError } = useMemo(() => {
     try {
-      return (data.transactions ?? []).filter((transaction) => transaction?.date?.startsWith(selectedMonth))
+      const filtered = (data.transactions ?? []).filter((transaction) => transaction?.date?.startsWith(selectedMonth))
+      return { transactions: filtered, error: null as string | null }
     } catch (err) {
       console.error("Failed to compute monthly transactions", err)
-      setError("There was a problem calculating transactions for analytics.")
-      return []
+      return { transactions: [] as typeof data.transactions, error: "There was a problem calculating transactions." }
     }
   }, [data.transactions, selectedMonth])
   const monthExpenses = monthTransactions.filter((transaction) => transaction.type === "expense")
@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
     ? `${topCategoryEntry.category?.name ?? "Deleted Category"} (${formatCurrency(topCategoryEntry.amount)})`
     : "—"
 
-  const loanMetrics = useMemo(() => {
+  const { metrics: loanMetrics, error: loanError } = useMemo(() => {
     try {
       const loans = data.loans ?? []
       const activeLoans = loans.filter((loan) => loan?.status === "active")
@@ -113,22 +113,31 @@ export default function AnalyticsPage() {
       const nextPayment =
         upcomingDates.length > 0 ? new Date(Math.min(...upcomingDates)).toLocaleDateString() : "Not scheduled"
       return {
-        active: activeLoans.length,
-        outstandingBalance,
-        totalBorrowed,
-        nextPayment,
+        metrics: {
+          active: activeLoans.length,
+          outstandingBalance,
+          totalBorrowed,
+          nextPayment,
+        },
+        error: null as string | null,
       }
     } catch (err) {
       console.error("Failed to compute loan metrics", err)
-      setError("There was a problem calculating loan metrics.")
       return {
-        active: 0,
-        outstandingBalance: 0,
-        totalBorrowed: 0,
-        nextPayment: "Not scheduled",
+        metrics: {
+          active: 0,
+          outstandingBalance: 0,
+          totalBorrowed: 0,
+          nextPayment: "Not scheduled",
+        },
+        error: "There was a problem calculating loan metrics.",
       }
     }
   }, [data.loans])
+
+  const combinedErrors = useMemo(() => {
+    return [loadError, transactionsError, loanError].filter(Boolean) as string[]
+  }, [loadError, transactionsError, loanError])
 
   const handleExport = () => {
     if (monthTransactions.length === 0) return
@@ -166,7 +175,7 @@ export default function AnalyticsPage() {
 
         <main className="flex-1 overflow-auto w-full">
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-            {error && (
+            {combinedErrors.length > 0 && (
               <Card className="border border-destructive/30 bg-destructive/10 p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-3">
@@ -174,7 +183,8 @@ export default function AnalyticsPage() {
                     <div>
                       <p className="text-sm font-semibold text-destructive">Analytics data issue</p>
                       <p className="text-sm text-destructive/80">
-                        {error} Try refreshing the page. If the issue continues, review your transactions, loans, and
+                        {combinedErrors.join(" ")} Try refreshing the page. If the issue continues, review your
+                        transactions, loans, and recurring entries for incomplete information.
                         recurring entries for incomplete information.
                       </p>
                     </div>
