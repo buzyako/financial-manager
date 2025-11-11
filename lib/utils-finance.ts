@@ -37,10 +37,16 @@ export const calculateBudgetStatus = (
 }
 
 export const formatCurrency = (amount: number): string => {
+  const absoluteAmount = Math.abs(amount)
+  const useCompact = absoluteAmount >= 100000
+
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
-    minimumFractionDigits: 2,
+    notation: useCompact ? "compact" : "standard",
+    compactDisplay: "short",
+    minimumFractionDigits: useCompact ? 1 : 2,
+    maximumFractionDigits: useCompact ? 1 : 2,
   }).format(amount)
 }
 
