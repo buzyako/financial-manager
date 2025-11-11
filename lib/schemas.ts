@@ -8,20 +8,21 @@ export const categorySchema = z.object({
   type: z.enum(["expense", "income"]),
 })
 
-export const transactionSchema = z
-  .object({
-    id: z.string().min(1),
-    categoryId: z.string().min(1),
-    amount: z.number().finite(),
-    description: z.string().min(1),
-    date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-    type: z.enum(["expense", "income"]),
-    isRecurring: z.boolean(),
-    recurringPattern: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
-  })
-  .superRefine((value, ctx) => {
+const transactionBaseSchema = z.object({
+  id: z.string().min(1),
+  categoryId: z.string().min(1),
+  amount: z.number().finite(),
+  description: z.string().min(1),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  type: z.enum(["expense", "income"]),
+  isRecurring: z.boolean(),
+  recurringPattern: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
+})
+
+const applyRecurringValidation = <T extends z.ZodTypeAny>(schema: T) =>
+  schema.superRefine((value: any, ctx) => {
     if (value.isRecurring && !value.recurringPattern) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -30,6 +31,8 @@ export const transactionSchema = z
       })
     }
   })
+
+export const transactionSchema = applyRecurringValidation(transactionBaseSchema)
 
 export const budgetSchema = z.object({
   id: z.string().min(1),
@@ -91,7 +94,9 @@ export const financeDataSchema = z.object({
   loans: z.array(loanSchema).optional().default([]),
 })
 
-export const transactionInputSchema = transactionSchema.omit({ id: true })
+export const transactionInputSchema = applyRecurringValidation(
+  transactionBaseSchema.omit({ id: true }),
+)
 export const loanInputSchema = loanSchema.omit({
   id: true,
   createdAt: true,
