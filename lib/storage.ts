@@ -1,7 +1,10 @@
 import { generateId } from "@/lib/utils"
-import type { FinanceData, Category, Transaction, Budget, SavingsGoal } from "./types"
+import type { FinanceData, Category, Transaction, Budget, SavingsGoal, User, AuthSession } from "./types"
 
 const STORAGE_KEY = "finance-app-data"
+const USERS_KEY = "finance-app-users"
+const AUTH_SESSION_KEY = "finance-app-session"
+const AUTH_INTENT_KEY = "finance-app-auth-intent"
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: "1", name: "Food & Dining", icon: "🍽️", color: "#FF6B6B", type: "expense" },
@@ -37,6 +40,88 @@ export const StorageManager = {
   saveData: (data: FinanceData): void => {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  },
+
+  getUsers: (): User[] => {
+    if (typeof window === "undefined") return []
+    try {
+      const stored = localStorage.getItem(USERS_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  },
+
+  saveUsers: (users: User[]): void => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  },
+
+  findUserByEmail: (email: string): User | undefined => {
+    const users = StorageManager.getUsers()
+    return users.find((user) => user.email.toLowerCase() === email.toLowerCase())
+  },
+
+  createUser: (user: Omit<User, "id" | "createdAt" | "updatedAt"> & { passwordHash: string }): User => {
+    const users = StorageManager.getUsers()
+    const now = new Date().toISOString()
+    const newUser: User = {
+      id: generateId(),
+      email: user.email,
+      passwordHash: user.passwordHash,
+      name: user.name,
+      createdAt: now,
+      updatedAt: now,
+    }
+    users.push(newUser)
+    StorageManager.saveUsers(users)
+    return newUser
+  },
+
+  updateUser: (user: User): void => {
+    const users = StorageManager.getUsers()
+    const index = users.findIndex((existing) => existing.id === user.id)
+    if (index !== -1) {
+      users[index] = { ...user, updatedAt: new Date().toISOString() }
+      StorageManager.saveUsers(users)
+    }
+  },
+
+  deleteUser: (userId: string): void => {
+    const users = StorageManager.getUsers().filter((user) => user.id !== userId)
+    StorageManager.saveUsers(users)
+  },
+
+  getSession: (): AuthSession | null => {
+    if (typeof window === "undefined") return null
+    try {
+      const stored = localStorage.getItem(AUTH_SESSION_KEY)
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  },
+
+  saveSession: (session: AuthSession): void => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
+  },
+
+  clearSession: (): void => {
+    if (typeof window === "undefined") return
+    localStorage.removeItem(AUTH_SESSION_KEY)
+  },
+
+  setAuthRedirectIntent: (path: string): void => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(AUTH_INTENT_KEY, path)
+  },
+
+  consumeAuthRedirectIntent: (): string | null => {
+    if (typeof window === "undefined") return null
+    const intent = localStorage.getItem(AUTH_INTENT_KEY)
+    localStorage.removeItem(AUTH_INTENT_KEY)
+    return intent
   },
 
   addTransaction: (transaction: Transaction): void => {

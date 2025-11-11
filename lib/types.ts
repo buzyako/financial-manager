@@ -40,3 +40,33 @@ export interface FinanceData {
   categories: Category[]
   accountBalance: number
 }
+
+export interface User {
+  id: string
+  email: string
+  passwordHash: string
+  name?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuthSession {
+  userId: string
+  token: string
+  expiresAt: string
+  createdAt: string
+  lastActivityAt: string
+}
+
+export interface AuthState {
+  currentUser: User | null
+  isAuthenticated: boolean
+}
+
+export interface AuthFormState {
+  email: string
+  password: string
+  name?: string
+  loading: boolean
+  error?: string
+}

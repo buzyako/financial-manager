@@ -10,6 +10,7 @@ import CategoryBreakdownChart from "@/components/category-breakdown-chart"
 import MonthlyComparisonChart from "@/components/monthly-comparison-chart"
 import AnalyticsStats from "@/components/analytics-stats"
 import { formatCurrency } from "@/lib/utils-finance"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<FinanceData | null>(null)
@@ -25,73 +26,75 @@ export default function AnalyticsPage() {
   if (!data || !selectedMonth) return null
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-background">
-      <Navigation />
+    <ProtectedRoute>
+      <div className="flex min-h-screen flex-col md:flex-row bg-background">
+        <Navigation />
 
-      <main className="flex-1 overflow-auto w-full">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Analytics & Reports</h1>
-            <p className="text-muted-foreground">Visualize your spending trends and financial patterns</p>
-          </div>
+        <main className="flex-1 overflow-auto w-full">
+          <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Analytics & Reports</h1>
+              <p className="text-muted-foreground">Visualize your spending trends and financial patterns</p>
+            </div>
 
-          {/* Stats Overview */}
-          <div className="my-8">
-            <AnalyticsStats
-              transactions={data.transactions}
-              categories={data.categories}
-              selectedMonth={selectedMonth}
-            />
-          </div>
+            {/* Stats Overview */}
+            <div className="my-8">
+              <AnalyticsStats
+                transactions={data.transactions}
+                categories={data.categories}
+                selectedMonth={selectedMonth}
+              />
+            </div>
 
-          {/* Month Selector */}
-          <Card className="p-4 mb-8">
-            <label htmlFor="month" className="block text-sm font-medium text-foreground mb-2">
-              Select Month
-            </label>
-            <input
-              id="month"
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </Card>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Spending Trend (Last 12 Months)</h2>
-              <SpendingTrendChart transactions={data.transactions} />
+            {/* Month Selector */}
+            <Card className="p-4 mb-8">
+              <label htmlFor="month" className="block text-sm font-medium text-foreground mb-2">
+                Select Month
+              </label>
+              <input
+                id="month"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </Card>
 
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Spending Trend (Last 12 Months)</h2>
+                <SpendingTrendChart transactions={data.transactions} />
+              </Card>
+
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Monthly Comparison</h2>
+                <MonthlyComparisonChart transactions={data.transactions} />
+              </Card>
+            </div>
+
+            <Card className="p-6 mb-8">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Category Breakdown - {selectedMonth}</h2>
+              <CategoryBreakdownChart
+                transactions={data.transactions}
+                categories={data.categories}
+                selectedMonth={selectedMonth}
+              />
+            </Card>
+
+            {/* Top Spending Categories */}
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Monthly Comparison</h2>
-              <MonthlyComparisonChart transactions={data.transactions} />
+              <h2 className="text-lg font-semibold text-foreground mb-4">Top Spending Categories</h2>
+              <TopSpendingCategories
+                transactions={data.transactions}
+                categories={data.categories}
+                selectedMonth={selectedMonth}
+              />
             </Card>
           </div>
-
-          <Card className="p-6 mb-8">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Category Breakdown - {selectedMonth}</h2>
-            <CategoryBreakdownChart
-              transactions={data.transactions}
-              categories={data.categories}
-              selectedMonth={selectedMonth}
-            />
-          </Card>
-
-          {/* Top Spending Categories */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Top Spending Categories</h2>
-            <TopSpendingCategories
-              transactions={data.transactions}
-              categories={data.categories}
-              selectedMonth={selectedMonth}
-            />
-          </Card>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   )
 }
 

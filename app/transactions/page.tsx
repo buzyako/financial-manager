@@ -8,6 +8,7 @@ import TransactionsList from "@/components/transactions-list"
 import type { FinanceData } from "@/lib/types"
 import { StorageManager } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function TransactionsPage() {
   const searchParams = useSearchParams()
@@ -76,82 +77,84 @@ export default function TransactionsPage() {
   })
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-background">
-      <Navigation />
+    <ProtectedRoute>
+      <div className="flex min-h-screen flex-col md:flex-row bg-background">
+        <Navigation />
 
-      <main className="flex-1 overflow-auto w-full">
-        <div className="p-4 md:p-8 max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Transactions</h1>
-              <p className="text-muted-foreground">Track all your income and expenses</p>
+        <main className="flex-1 overflow-auto w-full">
+          <div className="p-4 md:p-8 max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Transactions</h1>
+                <p className="text-muted-foreground">Track all your income and expenses</p>
+              </div>
+              {!showForm && (
+                <button
+                  onClick={() => handleOpenForm("expense")}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Add Transaction
+                </button>
+              )}
             </div>
-            {!showForm && (
-              <button
-                onClick={() => handleOpenForm("expense")}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Add Transaction
-              </button>
-            )}
-          </div>
 
-          {showForm && (
-            <Card className="p-6 mb-8">
-              <TransactionForm
+            {showForm && (
+              <Card className="p-6 mb-8">
+                <TransactionForm
+                  categories={data.categories}
+                  initialType={formType}
+                  onSuccess={handleTransactionAdded}
+                  onCancel={() => {
+                    setShowForm(false)
+                    resetQueryParams()
+                  }}
+                />
+              </Card>
+            )}
+
+            <Card className="p-6">
+              <div className="mb-6 flex gap-2">
+                <button
+                  onClick={() => setFilterType("all")}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    filterType === "all"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground hover:bg-muted"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterType("expense")}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    filterType === "expense"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground hover:bg-muted"
+                  }`}
+                >
+                  Expenses
+                </button>
+                <button
+                  onClick={() => setFilterType("income")}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    filterType === "income"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground hover:bg-muted"
+                  }`}
+                >
+                  Income
+                </button>
+              </div>
+
+              <TransactionsList
+                transactions={filteredTransactions}
                 categories={data.categories}
-                initialType={formType}
-                onSuccess={handleTransactionAdded}
-                onCancel={() => {
-                  setShowForm(false)
-                  resetQueryParams()
-                }}
+                onDelete={handleDeleteTransaction}
               />
             </Card>
-          )}
-
-          <Card className="p-6">
-            <div className="mb-6 flex gap-2">
-              <button
-                onClick={() => setFilterType("all")}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  filterType === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-foreground hover:bg-muted"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilterType("expense")}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  filterType === "expense"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-foreground hover:bg-muted"
-                }`}
-              >
-                Expenses
-              </button>
-              <button
-                onClick={() => setFilterType("income")}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  filterType === "income"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-foreground hover:bg-muted"
-                }`}
-              >
-                Income
-              </button>
-            </div>
-
-            <TransactionsList
-              transactions={filteredTransactions}
-              categories={data.categories}
-              onDelete={handleDeleteTransaction}
-            />
-          </Card>
-        </div>
-      </main>
-    </div>
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   )
 }
